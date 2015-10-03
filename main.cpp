@@ -7,41 +7,41 @@
 #include <map>
 
 typedef std::string string;
-typedef std::vector<std::string> stringVector;
-typedef std::vector<std::string>::const_iterator stringIter;
-typedef std::map<std::string, bool> boolMap;
+typedef std::vector<string> stringVector;
+typedef stringVector::const_iterator stringIter;
+typedef std::map<string, bool> boolMap;
 
 
-std::vector<std::string> getTokens(const std::string& inputString);
+stringVector getTokens(const string& inputString);
+
 bool isOperator(const char& ch);
 bool isParentheses(const char& ch);
-bool isVariable(const std::string& s);
-bool isOperator(const std::string& s);
-bool isLeftParen(const std::string& s);
-bool isRightParen(const std::string& s);
-int getPrecedence(const std::string& s);
-std::vector<std::string> getVariables(
-                             const std::vector<std::string>& tokenVector);
-std::vector<std::string> convertRPN(
-                             const std::vector<std::string>& tokenVector);
-bool evalRPN(const std::vector<std::string>& tokenVector, 
-        const std::map<std::string, bool>& bmap);
-std::string evalExpression(const std::string& arg1, const std::string& arg2,
-                           const std::string& op, 
-                           const std::map<std::string,bool>& bmap);
-void setValues(std::map<std::string, bool>& bmap,
-               const std::vector<std::string>& variableVector, int comboGen);
-std::vector<std::string> combineVectors(const std::vector<std::string>& vector1,
-                                    const std::vector<std::string>& vector2);
+bool isVariable(const string& s);
+bool isOperator(const string& s);
+bool isLeftParen(const string& s);
+bool isRightParen(const string& s);
+int getPrecedence(const string& s);
+
+stringVector getVariables(const stringVector& tokenVector);
+stringVector convertRPN(const stringVector& tokenVector);
+bool evalRPN(const stringVector& tokenVector, const boolMap& bmap);
+
+string evalExpression(const string& arg1, const string& arg2,
+                      const string& op, const boolMap& bmap);
+
+void setValues(boolMap& bmap, const stringVector& variableVector, int comboGen);
+
+stringVector combineVectors(const stringVector& vector1, 
+                            const stringVector& vector2);
 
 int main() {
-    std::vector<std::string> tokenVector1, tokenVector2;
-    std::vector<std::string> variableVector1, variableVector2;
-    std::vector<std::string> variableVectorUnion;
-    std::vector<std::string> RPNVector1, RPNVector2;
-    std::string inputString1 = "((P v Q) ^ (Q -> R) XOR (P ^ R)) <-> (R ^ Q)";
-    std::string inputString2 = "(P v R)";
-    std::map<std::string,bool> bmap;
+    stringVector tokenVector1, tokenVector2;
+    stringVector variableVector1, variableVector2;
+    stringVector variableVectorUnion;
+    stringVector RPNVector1, RPNVector2;
+    string inputString1 = "((P v Q) ^ (Q -> R) XOR (P ^ R)) <-> (R ^ Q)";
+    string inputString2 = "(P v R)";
+    boolMap bmap;
     bool result1, result2;
 
     tokenVector1 = getTokens(inputString1);
@@ -73,7 +73,7 @@ int main() {
         result1 = evalRPN(RPNVector1, bmap);
         result2 = evalRPN(RPNVector2, bmap);
 
-        for(std::vector<std::string>::const_iterator i = variableVectorUnion.begin();
+        for(stringIter i = variableVectorUnion.begin();
                 i != variableVectorUnion.end(); ++i) {
             if(bmap.at(*i)) {
                 std::cout << "T ";
@@ -121,9 +121,9 @@ int main() {
     return 0;
 }
 
-std::vector<std::string> getTokens(const std::string& inputString) {
-    std::vector<std::string> tokenVector;
-    std::string currentString = "";
+stringVector getTokens(const string& inputString) {
+    stringVector tokenVector;
+    string currentString = "";
 
     int i = 0;
 
@@ -202,12 +202,12 @@ bool isParentheses(const char& ch) {
     return ch == '(' || ch == ')';
 }
 
-bool isVariable(const std::string& s) {
+bool isVariable(const string& s) {
     return s.length() == 1 && isalpha(s[0]) && s[0] != 'v';
 }
 
-bool isOperator(const std::string& s) {
-    std::string validOperators[] = {"!", "v", "^", "->", "<->", "XOR"};
+bool isOperator(const string& s) {
+    string validOperators[] = {"!", "v", "^", "->", "<->", "XOR"};
 
     for(int i = 0; i < 6; i++) {
         if(s == validOperators[i]) {
@@ -218,15 +218,15 @@ bool isOperator(const std::string& s) {
     return false;
 }
 
-bool isLeftParen(const std::string& s) {
+bool isLeftParen(const string& s) {
     return s.length() == 1 && s[0] == '(';
 }
 
-bool isRightParen(const std::string& s) {
+bool isRightParen(const string& s) {
     return s.length() == 1 && s[0] == ')';
 }
 
-int getPrecedence(const std::string& s) {
+int getPrecedence(const string& s) {
     if(s == "<->") {
         return 0;
     }
@@ -256,11 +256,9 @@ int getPrecedence(const std::string& s) {
     }
 }
 
-std::vector<std::string> getVariables(
-                                const std::vector<std::string>& tokenVector) {
-    std::vector<std::string> variableVector;
-    for(std::vector<std::string>::const_iterator i = tokenVector.begin();
-                            i != tokenVector.end(); ++i) {
+stringVector getVariables(const stringVector& tokenVector) {
+    stringVector variableVector;
+    for(stringIter i = tokenVector.begin(); i != tokenVector.end(); ++i) {
         if(i->length() == 1 && isalpha(i->at(0)) && i->at(0) != 'v' &&
            i->at(0) != 'c' && i->at(0) != 't') {
             if(!(std::find(variableVector.begin(), variableVector.end(), *i) !=
@@ -273,14 +271,12 @@ std::vector<std::string> getVariables(
     return variableVector;
 }
 
-std::vector<std::string> convertRPN(
-                               const std::vector<std::string>& tokenVector) {
-    std::vector<std::string> RPNVector;
-    std::stack<std::string> operatorStack;
+stringVector convertRPN(const stringVector& tokenVector) {
+    stringVector RPNVector;
+    std::stack<string> operatorStack;
     int precedence;
 
-    for(std::vector<std::string>::const_iterator i = tokenVector.begin();
-                                        i != tokenVector.end(); ++i) {
+    for(stringIter i = tokenVector.begin(); i != tokenVector.end(); ++i) {
         if(isVariable(*i)) {
             RPNVector.push_back(*i);
         }
@@ -332,13 +328,11 @@ std::vector<std::string> convertRPN(
     return RPNVector;
 }
 
-bool evalRPN(const std::vector<std::string>& tokenVector, 
-             const std::map<std::string, bool>& bmap) {
-    std::stack<std::string> variableStack;
-    std::string arg1, arg2;
+bool evalRPN(const stringVector& tokenVector, const boolMap& bmap) {
+    std::stack<string> variableStack;
+    string arg1, arg2;
 
-    for(std::vector<std::string>::const_iterator i = tokenVector.begin();
-                                        i != tokenVector.end(); ++i) {
+    for(stringIter i = tokenVector.begin(); i != tokenVector.end(); ++i) {
         if(isVariable(*i)) {
             variableStack.push(*i);
         }
@@ -397,9 +391,8 @@ bool evalRPN(const std::vector<std::string>& tokenVector,
     }
 }
 
-std::string evalExpression(const std::string& arg1, const std::string& arg2,
-                           const std::string& op,
-                           const std::map<std::string,bool>& bmap) {
+string evalExpression(const string& arg1, const string& arg2,
+                           const string& op, const boolMap& bmap) {
     bool bArg1, bArg2;
 
     if(op == "!") {
@@ -479,11 +472,10 @@ std::string evalExpression(const std::string& arg1, const std::string& arg2,
     }
 }
 
-void setValues(std::map<std::string, bool>& bmap,
-               const std::vector<std::string>& variableVector, int comboGen) {
+void setValues(boolMap& bmap, const stringVector& variableVector, 
+                                                  int comboGen) {
     int j = 0;
-    for(std::vector<std::string>::const_iterator i = variableVector.begin();
-            i != variableVector.end(); i++) {
+    for(stringIter i = variableVector.begin(); i != variableVector.end(); i++) {
         if((comboGen >> j) & 0x01) {
             bmap[*i] = true;
         }
@@ -497,12 +489,11 @@ void setValues(std::map<std::string, bool>& bmap,
     return;
 }
 
-std::vector<std::string> combineVectors(const std::vector<std::string>& vector1,
-                                    const std::vector<std::string>& vector2) {
-    std::vector<std::string> newVector = vector1;
+stringVector combineVectors(const stringVector& vector1, 
+                            const stringVector& vector2) {
+    stringVector newVector = vector1;
 
-    for(std::vector<std::string>::const_iterator i = vector2.begin();
-            i != vector2.end(); ++i) {
+    for(stringIter i = vector2.begin(); i != vector2.end(); ++i) {
         if(std::find(newVector.begin(), 
                      newVector.end(), *i) == newVector.end()) {
             newVector.push_back(*i);
