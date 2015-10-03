@@ -1,19 +1,28 @@
 #include <iostream>
-#include <iomanip>
 #include <string>
 #include <vector>
 #include <algorithm>
 #include <stack>
 #include <map>
 
+// Some typedefs to make things less verbose.
 typedef std::string string;
+
 typedef std::vector<string> stringVector;
 typedef stringVector::const_iterator stringIter;
 typedef std::map<string, bool> boolMap;
 
-
+// Parses the input into tokens. "(A v B) ^ C <-> D" becomes
+// a vector with the following elements: "(", "A", "v", "B", ")", "^", "C",
+// "<->", and "D".
+// |
+// v
 stringVector getTokens(const string& inputString);
 
+// Boolean functions to make it easier to understand how the Shunting-Yard
+// algorithm works.
+// |
+// v
 bool isOperator(const char& ch);
 bool isParentheses(const char& ch);
 bool isVariable(const string& s);
@@ -22,25 +31,59 @@ bool isLeftParen(const string& s);
 bool isRightParen(const string& s);
 int getPrecedence(const string& s);
 
+// Obtains the variables from the vector of tokens. A variable is any
+// alphabet character that isn't "v", "c", or "t". Those are reserved for
+// the OR operator, logical falsity, and logical trith, respectively.
+// |
+// v
 stringVector getVariables(const stringVector& tokenVector);
+
+// Uses Djikstra's Shunting-Yard Algorithm to turn infix notation into
+// Reverse Polish Notation.
+// |
+// v
 stringVector convertRPN(const stringVector& tokenVector);
+
+// Given a vector in RPN and a map of Boolean values, evaluate the result.
+// |
+// v
 bool evalRPN(const stringVector& tokenVector, const boolMap& bmap);
 
+// Used inside evalRPN to evaluate individual pairs of arguments.
+// |
+// v
 string evalExpression(const string& arg1, const string& arg2,
                       const string& op, const boolMap& bmap);
 
+// Given an integer value, take the bits of that integer and use them to
+// set the truth-false values in bmap.
+// For example, providing 5 (101) as the generator integer and the elements of
+// "p", "q", and "r" in the vector of variables will make bmap set the following
+// values: bmap["p"] = true, bmap["q"] = false, bmap["r"] = true.
+// |
+// v
 void setValues(boolMap& bmap, const stringVector& variableVector, int comboGen);
 
+// Combines two vectors, eliminating duplicates,
+// and also sorts them. This will then get plugged into setValues to generate 
+// truth-false tables for all variables.
+// |
+// v
 stringVector combineVectors(const stringVector& vector1, 
                             const stringVector& vector2);
+
+void printBool(bool b);
+void printSpaces(int n);
 
 int main() {
     stringVector tokenVector1, tokenVector2;
     stringVector variableVector1, variableVector2;
     stringVector variableVectorUnion;
     stringVector RPNVector1, RPNVector2;
-    string inputString1 = "((P v Q) ^ (Q -> R) XOR (P ^ R)) <-> (R ^ Q)";
-    string inputString2 = "(P v R)";
+    // string inputString1 = "((P v Q) ^ (Q -> R) XOR (P ^ R)) <-> (R ^ Q)";
+    // string inputString2 = "(P v R)";
+    string inputString1 = "p -> (q v r)";
+    string inputString2 = "(p ^ !q) -> r";
     boolMap bmap;
     bool result1, result2;
 
@@ -67,6 +110,25 @@ int main() {
 
     comboGen--;
 
+    // Print out the top part of the output table.
+
+    int colWidth1 = inputString1.length();
+    int colWidth2 = inputString2.length();
+
+    std::cout << "col1 = " << colWidth1 << "\n";
+    std::cout << "col2 = " << colWidth2 << "\n";
+    std::cout << "col1 / 2 = " << colWidth1 / 2 << "\n";
+    std::cout << "col2 / 2 = " << colWidth2 / 2 << "\n";
+
+    for(stringIter i = variableVectorUnion.begin(); i !=
+            variableVectorUnion.end(); ++i) {
+        std::cout << *i << " ";
+    }
+    std::cout << "| ";
+
+    std::cout << inputString1 << " | " << inputString2 << "\n";
+
+    // Print the truth table values.
     while(comboGen >= 0) {
         setValues(bmap, variableVectorUnion, comboGen);
 
@@ -75,30 +137,18 @@ int main() {
 
         for(stringIter i = variableVectorUnion.begin();
                 i != variableVectorUnion.end(); ++i) {
-            if(bmap.at(*i)) {
-                std::cout << "T ";
-            }
-
-            else {
-                std::cout << "F ";
-            }
+            printBool(bmap.at(*i)); 
+            std::cout << " ";
         }
 
-        if(result1) {
-            std::cout << "T ";
-        }
-
-        else {
-            std::cout << "F ";
-        }
-
-        if(result2) {
-            std::cout << "T ";
-        }
-
-        else {
-            std::cout << "F ";
-        }
+        std::cout << "|";
+        printSpaces(colWidth1 / 2);
+        printBool(result1);
+        printSpaces(colWidth1 / 2);
+        std::cout << " |";
+        printSpaces(colWidth2 / 2); 
+        printBool(result2);
+        printSpaces(colWidth2 / 2);
 
         if(result1 != result2) {
             std::cout << "Invalid!";
@@ -328,11 +378,11 @@ stringVector convertRPN(const stringVector& tokenVector) {
     return RPNVector;
 }
 
-bool evalRPN(const stringVector& tokenVector, const boolMap& bmap) {
+bool evalRPN(const stringVector& RPNVector, const boolMap& bmap) {
     std::stack<string> variableStack;
     string arg1, arg2;
 
-    for(stringIter i = tokenVector.begin(); i != tokenVector.end(); ++i) {
+    for(stringIter i = RPNVector.begin(); i != RPNVector.end(); ++i) {
         if(isVariable(*i)) {
             variableStack.push(*i);
         }
@@ -345,6 +395,8 @@ bool evalRPN(const stringVector& tokenVector, const boolMap& bmap) {
                     arg1 = variableStack.top();
                     variableStack.pop();
                     arg2 = "";
+                    // Evaluate the arguments and push the result onto the
+                    // stack.
                     variableStack.push(evalExpression(arg1, arg2, *i, bmap));
                 }
 
@@ -503,4 +555,23 @@ stringVector combineVectors(const stringVector& vector1,
     std::sort(newVector.begin(), newVector.end());
 
     return newVector;
+}
+
+void printBool(bool b) {
+    if(b) {
+        std::cout << "T";
+    }
+
+    else {
+        std::cout << "F";
+    }
+
+    return;
+}
+
+void printSpaces(int n) {
+    for(int i = 0; i < n; i++) {
+        std::cout << " ";
+    }
+    return;
 }
