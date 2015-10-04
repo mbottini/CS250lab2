@@ -80,12 +80,14 @@ int main() {
     stringVector variableVector1, variableVector2;
     stringVector variableVectorUnion;
     stringVector RPNVector1, RPNVector2;
-    // string inputString1 = "((P v Q) ^ (Q -> R) XOR (P ^ R)) <-> (R ^ Q)";
-    // string inputString2 = "(P v R)";
-    string inputString1 = "p -> (q v r)";
-    string inputString2 = "(p ^ !q) -> r";
+    string inputString1, inputString2;
     boolMap bmap;
     bool result1, result2;
+
+    std::cout << "Premise: ";
+    getline(std::cin, inputString1);
+    std::cout << "Conclusion: ";
+    getline(std::cin, inputString2);
 
     tokenVector1 = getTokens(inputString1);
     tokenVector2 = getTokens(inputString2);
@@ -99,6 +101,8 @@ int main() {
     
     bool validConclusion = true;
 
+    // Set initial values of bmap. "c" and "t" never change. ComboGen
+    // is initially set to make every variable "true."
     bmap["c"] = false;
     bmap["t"] = true;
 
@@ -114,11 +118,6 @@ int main() {
 
     int colWidth1 = inputString1.length();
     int colWidth2 = inputString2.length();
-
-    std::cout << "col1 = " << colWidth1 << "\n";
-    std::cout << "col2 = " << colWidth2 << "\n";
-    std::cout << "col1 / 2 = " << colWidth1 / 2 << "\n";
-    std::cout << "col2 / 2 = " << colWidth2 / 2 << "\n";
 
     for(stringIter i = variableVectorUnion.begin(); i !=
             variableVectorUnion.end(); ++i) {
@@ -143,15 +142,26 @@ int main() {
 
         std::cout << "|";
         printSpaces(colWidth1 / 2);
+
+        if(inputString1.length() % 2 == 1) {
+            std::cout << " ";
+        }
+
         printBool(result1);
         printSpaces(colWidth1 / 2);
+
         std::cout << " |";
         printSpaces(colWidth2 / 2); 
+
+        if(inputString2.length() % 2 == 1) {
+            std::cout << " ";
+        }
+
         printBool(result2);
         printSpaces(colWidth2 / 2);
 
         if(result1 != result2) {
-            std::cout << "Invalid!";
+            std::cout << " Invalid!";
             validConclusion = false;
         }
 
@@ -160,11 +170,11 @@ int main() {
     }
 
     if(validConclusion) {
-        std::cout << "Valid conclusion. All truth table values line up.\n";
+        std::cout << "Valid statement. All truth table values line up.\n";
     }
 
     else {
-        std::cout << "Invalid conclusion. Invalid truth table values are "
+        std::cout << "Invalid statement. Invalid truth table values are "
                   << "labelled.\n";
     }
 
@@ -309,8 +319,10 @@ int getPrecedence(const string& s) {
 stringVector getVariables(const stringVector& tokenVector) {
     stringVector variableVector;
     for(stringIter i = tokenVector.begin(); i != tokenVector.end(); ++i) {
+
         if(i->length() == 1 && isalpha(i->at(0)) && i->at(0) != 'v' &&
-           i->at(0) != 'c' && i->at(0) != 't') {
+                                 i->at(0) != 'c' && i->at(0) != 't') {
+
             if(!(std::find(variableVector.begin(), variableVector.end(), *i) !=
                     variableVector.end())) {
                 variableVector.push_back(*i);
@@ -355,6 +367,12 @@ stringVector convertRPN(const stringVector& tokenVector) {
         }
 
         else if(isRightParen(*i)) {
+            if(operatorStack.empty()) {
+                std::cout << "Parentheses mismatch!\n";
+                RPNVector.clear();
+                return RPNVector;
+            }
+
             while(operatorStack.top() != "(") {
                 if(operatorStack.empty()) {
                     std::cout << "Parentheses mismatch!\n";
@@ -381,6 +399,21 @@ stringVector convertRPN(const stringVector& tokenVector) {
 bool evalRPN(const stringVector& RPNVector, const boolMap& bmap) {
     std::stack<string> variableStack;
     string arg1, arg2;
+
+    if(RPNVector.empty()) {
+        return false;
+    }
+
+    // If it's just one variable in the statement, return the variable.
+    if(RPNVector.size() == 1) {
+        if(evalExpression(RPNVector[0], "", "", bmap) == "t") {
+            return true;
+        }
+
+        else {
+            return false;
+        }
+    }
 
     for(stringIter i = RPNVector.begin(); i != RPNVector.end(); ++i) {
         if(isVariable(*i)) {
@@ -413,7 +446,7 @@ bool evalRPN(const stringVector& RPNVector, const boolMap& bmap) {
                     variableStack.pop();
                     arg2 = variableStack.top();
                     variableStack.pop();
-                    variableStack.push(evalExpression(arg1, arg2, *i, bmap));
+                    variableStack.push(evalExpression(arg2, arg1, *i, bmap));
                 }
 
                 else {
@@ -446,15 +479,27 @@ bool evalRPN(const stringVector& RPNVector, const boolMap& bmap) {
 string evalExpression(const string& arg1, const string& arg2,
                            const string& op, const boolMap& bmap) {
     bool bArg1, bArg2;
+    std::string result;
 
-    if(op == "!") {
+    if(op == "") {
         bArg1 = bmap.at(arg1);
         if(bArg1) {
-            return "c";
+            return "t";
         }
 
         else {
-            return "t";
+            return "c";
+        }
+    }
+
+    else if(op == "!") {
+        bArg1 = bmap.at(arg1);
+        if(bArg1) {
+            result = "c";
+        }
+
+        else {
+            result = "t";
         }
     }
 
@@ -463,65 +508,68 @@ string evalExpression(const string& arg1, const string& arg2,
         bArg2 = bmap.at(arg2);
 
         // Logical AND.
-        if(op == "v") {
+        if(op == "^") {
             if(bArg1 && bArg2) {
-                return "t";
+                result = "t";
             }
 
             else {
-                return "c";
+                result = "c";
             }
         }
 
         // Logical OR.
-        if(op == "^") {
+        else if(op == "v") {
             if(bArg1 || bArg2) {
-                return "t";
+                result = "t";
             }
 
             else {
-                return "c";
+                result = "c";
             }
         }
 
         // Logical XOR.
-        if(op == "XOR") {
+        else if(op == "XOR") {
             if((bArg1 || bArg2) && !(bArg1 && bArg2)) {
-                return "t";
+                result = "t";
             }
 
             else {
-                return "c";
+                result = "c";
             }
         }
 
         // Implies operator.
-        if(op == "->") {
+        else if(op == "->") {
             if(!bArg1 || bArg2) {
-                return "t";
+                result = "t";
             }
 
             else {
-                return "c";
+                result = "c";
             }
         }
 
         // If and only if operator.
-        if(op == "<->") {
+        else if(op == "<->") {
             if((bArg1 && bArg2) || (!bArg1 && bArg2)) {
-                return "t";
+                result = "t";
             }
 
             else {
-                return "c";
+                result = "c";
             }
         }
 
         else {
             std::cout << "Invalid operator!\n";
-            return "c";
+            result = "c";
         }
     }
+
+    // std::cout << result << "\n";
+    return result;
 }
 
 void setValues(boolMap& bmap, const stringVector& variableVector, 
