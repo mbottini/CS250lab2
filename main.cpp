@@ -553,7 +553,7 @@ string evalExpression(const string& arg1, const string& arg2,
 
         // If and only if operator.
         else if(op == "<->") {
-            if((bArg1 && bArg2) || (!bArg1 && bArg2)) {
+            if((bArg1 && bArg2) || (!bArg1 && !bArg2)) {
                 result = "t";
             }
 
